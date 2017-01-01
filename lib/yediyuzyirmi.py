@@ -18,13 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import channel
+import vods
 import re
 from operator import itemgetter
 
-encoding="windows-1254"
+encoding = "windows-1254"
 
-class yediyuzyirmiizle(channel.abstract):
+
+class yediyuzyirmiizle(vods.channel):
     domain = "http://www.720pizle.com"
     art = {
            "icon": "http://720pizle.com/images/logo.png",
@@ -51,27 +52,7 @@ class yediyuzyirmiizle(channel.abstract):
         vids.sort(key=itemgetter(1), reverse=True)
         return [self.domain + x[0] for x in vids]
 
-    def listcats(self):
-        page = self.download(self.domain, encoding)
-        res = re.findall('class="menu-item".*?href="(.*?)">(.*?)</a>', page)
-        for link, desc in res:
-            if link == "/":
-                continue
-            if "imdb" in desc.lower():
-                continue
-            if "hit" in link:
-                desc = u"En Çok İzlenen: " + re.sub("<.*?>", "", desc)
-            self.additem(desc, link)
-
-    def listmovies(self, cat=None):
-        if self.pageargs:
-            u = self.domain + self.pageargs
-        else:
-            if cat:
-                u = self.domain + cat
-            else:
-                u = self.domain
-        page = self.download(u, encoding)
+    def scrapegrid(self, page):
         for item in re.findall('(<div class="film-kategori.*?</small></div>)', page, re.DOTALL):
             title = re.findall('<span class="oval">(.*?)</span>', item)[0]
             links = re.findall('<div class="film-kategori-tr-secenek">(.*?)<img', item)[0]
@@ -92,11 +73,43 @@ class yediyuzyirmiizle(channel.abstract):
             if len(next):
                 self.setnext(next[0][0], next[0][1])
 
+    def getcats(self):
+        page = self.download(self.domain, encoding)
+        res = re.findall('class="menu-item".*?href="(.*?)">(.*?)</a>', page)
+        for link, desc in res:
+            if link == "/":
+                continue
+            if "imdb" in desc.lower():
+                continue
+            if "hit" in link:
+                desc = u"En Çok İzlenen: " + re.sub("<.*?>", "", desc)
+            self.additem(desc, link)
+
+    def getmovs(self, cat=None):
+        if self.pageargs:
+            u = self.domain + self.pageargs
+        else:
+            if cat:
+                u = self.domain + cat
+            else:
+                u = self.domain
+        page = self.download(u, encoding)
+        self.scrapegrid(page)
+
+    def searchmovs(self, keyw):
+        q = {"a": keyw}
+        page = self.download(self.domain + "/ara.asp", \
+                             encoding,
+                             query=q,
+                             referer=self.domain
+                             )
+        self.scrapegrid(page)
+
     def geturl(self, id):
         for lang in id:
             page = self.download(self.domain+lang, encoding)
             alts = re.findall('<a href="(.*?)" rel="nofollow">(.*?)<b class="alternatifrip">', page)
-            print alts
+            vids = []
             for alink, adesc in alts:
                 print alink
                 adesc = adesc.lower().replace(" ","")
@@ -106,6 +119,6 @@ class yediyuzyirmiizle(channel.abstract):
                 elif adesc == "plusplayer":
                     vids = self.plus(apage)
             for vid in vids:
-                self.play(vid)
+                self.additem("", vid)
 
                         
