@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<addon id="plugin.program.vods-720pizle" name="VODS icin 720pizle modulu" provider-name="boogiepop" version="0.0.1">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0" />
+    <import addon="plugin.video.vods" version="0.0.1" />
+  </requires>
+  <extension point="xbmc.python.pluginsource">
+		<provides/>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary lang="en">720pizle VODS modulu</summary>
+  </extension>
+  <extension library="lib" point="xbmc.python.module" />
+  <extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">720pizle VODS modulu</summary>
+		<description lang="en">720pizle VODS modulu</description>
+		<license>GNU General Public License, v2</license>
+		<language/>
+		<forum>https://github.com/boogiepy/plugin.program.vods-720pizle/issues</forum>
+		<source/>
+		<website>https://github.com/boogiepy/plugin.program.vods-720pizle</website>
+		<email>boogiepop@gmx.com</email>
+  </extension>
+</addon>

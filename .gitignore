@@ -1,0 +1,8 @@
+*.pyo
+*.pyc
+*.bak
+/channels*
+/channels/*
+.settings
+.project
+.pydevproject
