@@ -25,7 +25,7 @@ from operator import itemgetter
 encoding = "windows-1254"
 
 
-class yediyuzyirmiizle(vods.channel):
+class yediyuzyirmiizle(vods.moviechannel):
     domain = "http://www.720pizle.com"
     art = {
            "icon": "http://720pizle.com/images/logo.png",
@@ -73,7 +73,7 @@ class yediyuzyirmiizle(vods.channel):
             if len(next):
                 self.setnext(next[0][0], next[0][1])
 
-    def getcats(self):
+    def getcategories(self):
         page = self.download(self.domain, encoding)
         res = re.findall('class="menu-item".*?href="(.*?)">(.*?)</a>', page)
         for link, desc in res:
@@ -85,7 +85,7 @@ class yediyuzyirmiizle(vods.channel):
                 desc = u"En Çok İzlenen: " + re.sub("<.*?>", "", desc)
             self.additem(desc, link)
 
-    def getmovs(self, cat=None):
+    def getmovies(self, cat=None):
         if self.pageargs:
             u = self.domain + self.pageargs
         else:
@@ -96,7 +96,7 @@ class yediyuzyirmiizle(vods.channel):
         page = self.download(u, encoding)
         self.scrapegrid(page)
 
-    def searchmovs(self, keyw):
+    def searchmovies(self, keyw):
         q = {"a": keyw}
         page = self.download(self.domain + "/ara.asp", \
                              encoding,
@@ -121,4 +121,40 @@ class yediyuzyirmiizle(vods.channel):
             for vid in vids:
                 self.additem("", vid)
 
-                        
+    def getmoviemeta(self, id):
+        url = "/detay/" + id[0].split("/")[-1]
+        page = self.download(self.domain + url, encoding)
+        map = {
+               u"Yönetmen": ["director",""],
+               u"Vizyon Tarihi": ["year", "1 Ocak 1000"],
+               u"IMDB": ["rating", "0"],
+               u"Süre": ["duration", "0 Dakika"],
+               u"Tür": ["genre", ""],
+               }
+        info = {}
+        for k, v in map.iteritems():
+            key, dfl = v
+            try:
+                str = re.findall(k + "\:</span>(.*?)</li", page, re.UNICODE)[0]
+                str = re.sub("<.*?>", "", str)
+                str = str.replace(u"\xa0", "")
+                info[key] = str
+            except:
+                info[key] = dfl
+        info["year"] = int(info["year"][-4:])
+        info["rating"] = float(info["rating"].replace(",", "."))
+        info["duration"] = int(info["duration"].replace("Dakika", ""))*60
+        plot = re.findall("<hr>(.*?)</div>", page, re.DOTALL)
+        if plot:
+            plot = re.sub("<.*?>", "", plot[0])
+            info["plot"] = plot.strip()
+            info["plotoutline"] = plot.strip()
+        cast = re.findall('<div class="oyuncuadi"><span>(.*?)</span>', page)
+        if cast:
+            info["cast"]  = cast
+        if info["year"] == 1000:
+            year = re.findall("\(([0-9]*?)\)</h1>", page)
+            print year
+            if year:
+                info["year"] = int(year[0])
+        return info, {}
