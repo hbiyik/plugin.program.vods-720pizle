@@ -39,7 +39,7 @@ class yediyuzyirmiizle(vods.moviechannel):
                               referer=self.domain, \
                               query=q)
         vids = re.findall("file: '(/player.*?)'", ppage)
-        return [self.domain + x for x in vids]
+        return [[self.domain + x, 480] for x in vids]
 
     def plusv2(self, apage):
         pid = re.findall('<div class="plusplayer.*?>(.*?)<', apage)[0]
@@ -48,15 +48,28 @@ class yediyuzyirmiizle(vods.moviechannel):
                               referer=self.domain, \
                               query=q)
         vids = re.findall('video.push\(\{"file":"(.*?)", "label":"(.*?)p"', ppage)
-        vids = [[x[0], int(x[1])] for x in vids]
-        vids.sort(key=itemgetter(1), reverse=True)
-        return [self.domain + x[0] for x in vids]
+        vids = [[self.domain + x[0], int(x[1])] for x in vids]
+        return vids
+
+    def jsfunc(self, apage, fname, pattern, qual):
+        oids = re.findall(fname + "\('(.*?)'", apage)
+        vids = []
+        for oid in oids:
+            vids.append([pattern % oid, qual])
+        return vids
+
+    def movshare(self, apage):
+        oids = re.findall("movshare\('(.*?)'", apage)
+        vids = []
+        for oid in oids:
+            vids.append(["https://openload.co/embed/%s/" % oid, 720])
+        return vids
 
     def scrapegrid(self, page):
         for item in re.findall('(<div class="film-kategori.*?</small></div>)', page, re.DOTALL):
             title = re.findall('<span class="oval">(.*?)</span>', item)[0]
-            links = re.findall('<div class="film-kategori-tr-secenek">(.*?)<img', item)[0]
-            links = re.findall('href="(.*?)"', links)
+            links = re.findall('<div class="film-kategori-tr-secenek">(.*?)</div', item)[0]
+            links = re.findall('href="(/izle.*?)"', links)
             img = re.findall('<img src="(.*?)"', item)[0]
             stars = re.findall('<span class="c">(.*?)\/', item)[0]
             stars = float(stars.replace(",", "."))
@@ -69,9 +82,9 @@ class yediyuzyirmiizle(vods.moviechannel):
                    "icon": img,
                    }
             self.additem(title, links, info, art)
-            next = re.findall('<li class="active">.*?<li ><a href="(.*?)" title="(.*?)">[0-9]*?</a></li>', page, re.DOTALL)
-            if len(next):
-                self.setnext(next[0][0], next[0][1])
+        next = re.findall('<li class="active">.*?<li ><a href="(.*?)" title="(.*?)">[0-9]*?</a></li>', page, re.DOTALL)
+        if len(next):
+            self.setnext(next[0][1], next[0][0])
 
     def getcategories(self):
         page = self.download(self.domain, encoding)
@@ -107,18 +120,28 @@ class yediyuzyirmiizle(vods.moviechannel):
 
     def geturl(self, id):
         for lang in id:
-            page = self.download(self.domain+lang, encoding)
+            page = self.download(self.domain + lang, encoding)
             alts = re.findall('<a href="(.*?)" rel="nofollow">(.*?)<b class="alternatifrip">', page)
             vids = []
             for alink, adesc in alts:
-                print alink
-                adesc = adesc.lower().replace(" ","")
+                adesc = adesc.lower().replace(" ", "")
                 apage = self.download(self.domain + alink, encoding)
                 if adesc == "plusplayerv2":
-                    vids = self.plusv2(apage)
+                    vids.extend(self.plusv2(apage))
                 elif adesc == "plusplayer":
-                    vids = self.plus(apage)
-            for vid in vids:
+                    vids.extend(self.plus(apage))
+                elif adesc == "openload":
+                    pattern = "https://openload.co/embed/%s/"
+                    vids.extend(self.jsfunc(apage, "openload", pattern, 720))
+                elif adesc == "movshare":
+                    pattern = "http://www.wholecloud.net/embed/?v=%s"
+                    vids.extend(self.jsfunc(apage, "movshare", pattern, 720))
+                elif adesc == "mail.ru":
+                    pattern ="http://videoapi.my.mail.ru/videos/embed/%s"
+                    vids.extend(self.jsfunc(apage, "mailru", pattern, 480))
+
+            vids.sort(key=itemgetter(1), reverse=True)
+            for vid, qual in vids:
                 self.additem("", vid)
 
     def getmoviemeta(self, id):
@@ -154,7 +177,6 @@ class yediyuzyirmiizle(vods.moviechannel):
             info["cast"]  = cast
         if info["year"] == 1000:
             year = re.findall("\(([0-9]*?)\)</h1>", page)
-            print year
             if year:
                 info["year"] = int(year[0])
         return info, {}
