@@ -22,10 +22,10 @@ import vods
 import re
 from operator import itemgetter
 
-encoding = "windows-1254"
+encoding = "utf-8"
 
 
-class yediyuzyirmiizle(vods.moviechannel):
+class yediyuzyirmiizle(vods.movieextension):
     domain = "http://www.720pizle.com"
     art = {
            "icon": "http://720pizle.com/images/logo.png",
@@ -37,7 +37,7 @@ class yediyuzyirmiizle(vods.moviechannel):
         q = {"v": pid}
         ppage = self.download("http://720pizle.com/player/plusplayer.asp", \
                               referer=self.domain, \
-                              query=q)
+                              params=q)
         vids = re.findall("file: '(/player.*?)'", ppage)
         return [[self.domain + x, 480] for x in vids]
 
@@ -46,7 +46,7 @@ class yediyuzyirmiizle(vods.moviechannel):
         q = {"v": pid}
         ppage = self.download("http://720pizle.com/player/plusplayer2.asp", \
                               referer=self.domain, \
-                              query=q)
+                              params=q)
         vids = re.findall('video.push\(\{"file":"(.*?)", "label":"(.*?)p"', ppage)
         vids = [[self.domain + x[0], int(x[1])] for x in vids]
         return vids
@@ -84,7 +84,7 @@ class yediyuzyirmiizle(vods.moviechannel):
             self.additem(title, links, info, art)
         next = re.findall('<li class="active">.*?<li ><a href="(.*?)" title="(.*?)">[0-9]*?</a></li>', page, re.DOTALL)
         if len(next):
-            self.setnext(next[0][1], next[0][0])
+            self.setnextpage(next[0][1], next[0][0])
 
     def getcategories(self):
         page = self.download(self.domain, encoding)
@@ -99,7 +99,7 @@ class yediyuzyirmiizle(vods.moviechannel):
             self.additem(desc, link)
 
     def getmovies(self, cat=None):
-        if self.pageargs:
+        if self.page:
             u = self.domain + self.pageargs
         else:
             if cat:
@@ -113,7 +113,7 @@ class yediyuzyirmiizle(vods.moviechannel):
         q = {"a": keyw}
         page = self.download(self.domain + "/ara.asp", \
                              encoding,
-                             query=q,
+                             params=q,
                              referer=self.domain
                              )
         self.scrapegrid(page)
@@ -142,7 +142,7 @@ class yediyuzyirmiizle(vods.moviechannel):
 
             vids.sort(key=itemgetter(1), reverse=True)
             for vid, qual in vids:
-                self.additem("", vid)
+                self.addurl(vid)
 
     def getmoviemeta(self, id):
         url = "/detay/" + id[0].split("/")[-1]
@@ -174,7 +174,7 @@ class yediyuzyirmiizle(vods.moviechannel):
             info["plotoutline"] = plot.strip()
         cast = re.findall('<div class="oyuncuadi"><span>(.*?)</span>', page)
         if cast:
-            info["cast"]  = cast
+            info["cast"] = cast
         if info["year"] == 1000:
             year = re.findall("\(([0-9]*?)\)</h1>", page)
             if year:
