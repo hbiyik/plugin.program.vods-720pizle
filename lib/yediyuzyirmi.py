@@ -22,7 +22,7 @@ import vods
 import re
 from operator import itemgetter
 
-encoding = "utf-8"
+encoding = "windows-1254"
 
 
 class yediyuzyirmiizle(vods.movieextension):
@@ -47,8 +47,9 @@ class yediyuzyirmiizle(vods.movieextension):
         ppage = self.download("http://720pizle.com/player/plusplayer2.asp", \
                               referer=self.domain, \
                               params=q)
-        vids = re.findall('video.push\(\{"file":"(.*?)", "label":"(.*?)p"', ppage)
-        vids = [[self.domain + x[0], int(x[1])] for x in vids]
+        vids = re.findall('"file":"(.*?)".*?"label":"([0-9]*)', ppage)
+        vids = [[x[0], int(x[1])] for x in vids]
+        print vids
         return vids
 
     def jsfunc(self, apage, fname, pattern, qual):
@@ -75,7 +76,7 @@ class yediyuzyirmiizle(vods.movieextension):
             stars = float(stars.replace(",", "."))
             info = {
                     "title": title,
-                     "rating": stars,
+                    "rating": stars,
                     }
             art = {
                    "thumb": img,
@@ -84,10 +85,10 @@ class yediyuzyirmiizle(vods.movieextension):
             self.additem(title, links, info, art)
         next = re.findall('<li class="active">.*?<li ><a href="(.*?)" title="(.*?)">[0-9]*?</a></li>', page, re.DOTALL)
         if len(next):
-            self.setnextpage(next[0][1], next[0][0])
+            self.setnextpage(next[0][0], next[0][1])
 
     def getcategories(self):
-        page = self.download(self.domain, encoding)
+        page = self.download(self.domain, encoding=encoding)
         res = re.findall('class="menu-item".*?href="(.*?)">(.*?)</a>', page)
         for link, desc in res:
             if link == "/":
@@ -100,32 +101,33 @@ class yediyuzyirmiizle(vods.movieextension):
 
     def getmovies(self, cat=None):
         if self.page:
-            u = self.domain + self.pageargs
+            u = self.domain + self.page
         else:
             if cat:
                 u = self.domain + cat
             else:
                 u = self.domain
-        page = self.download(u, encoding)
+        page = self.download(u, encoding=encoding)
         self.scrapegrid(page)
 
     def searchmovies(self, keyw):
         q = {"a": keyw}
         page = self.download(self.domain + "/ara.asp", \
-                             encoding,
+                             encoding=encoding,
                              params=q,
                              referer=self.domain
                              )
         self.scrapegrid(page)
 
-    def geturl(self, id):
+    def geturls(self, id):
         for lang in id:
-            page = self.download(self.domain + lang, encoding)
+            page = self.download(self.domain + lang, encoding=encoding)
             alts = re.findall('<a href="(.*?)" rel="nofollow">(.*?)<b class="alternatifrip">', page)
+            print alts
             vids = []
             for alink, adesc in alts:
                 adesc = adesc.lower().replace(" ", "")
-                apage = self.download(self.domain + alink, encoding)
+                apage = self.download(self.domain + alink, encoding=encoding)
                 if adesc == "plusplayerv2":
                     vids.extend(self.plusv2(apage))
                 elif adesc == "plusplayer":
@@ -139,14 +141,16 @@ class yediyuzyirmiizle(vods.movieextension):
                 elif adesc == "mail.ru":
                     pattern ="http://videoapi.my.mail.ru/videos/embed/%s"
                     vids.extend(self.jsfunc(apage, "mailru", pattern, 480))
-
+                elif adesc == "uptobox":
+                    pattern ="http://uptostream.com/%s"
+                    vids.extend(self.jsfunc(apage, "uptobox", pattern, 480))
             vids.sort(key=itemgetter(1), reverse=True)
             for vid, qual in vids:
-                self.addurl(vid)
+                yield vid
 
-    def getmoviemeta(self, id):
+    def cachemovies(self, id):
         url = "/detay/" + id[0].split("/")[-1]
-        page = self.download(self.domain + url, encoding)
+        page = self.download(self.domain + url, encoding=encoding)
         map = {
                u"Yönetmen": ["director",""],
                u"Vizyon Tarihi": ["year", "1 Ocak 1000"],
@@ -167,6 +171,9 @@ class yediyuzyirmiizle(vods.movieextension):
         info["year"] = int(info["year"][-4:])
         info["rating"] = float(info["rating"].replace(",", "."))
         info["duration"] = int(info["duration"].replace("Dakika", ""))*60
+        title = re.search("<h1>(.+?)\([0-9]{4}\)<\/h1>", page)
+        if title:
+            info["title"] = title.group(1)
         plot = re.findall("<hr>(.*?)</div>", page, re.DOTALL)
         if plot:
             plot = re.sub("<.*?>", "", plot[0])
