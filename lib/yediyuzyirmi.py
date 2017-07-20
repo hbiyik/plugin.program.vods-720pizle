@@ -27,6 +27,9 @@ encoding = "windows-1254"
 
 class yediyuzyirmiizle(vods.movieextension):
     domain = "http://www.720pizle.com"
+    info = {
+        "title": "720pizle"
+        }
     art = {
            "icon": "http://720pizle.com/images/logo.png",
            "thumb": "http://720pizle.com/images/logo.png"
