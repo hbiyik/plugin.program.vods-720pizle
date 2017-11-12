@@ -28,12 +28,14 @@ encoding = "windows-1254"
 
 class yediyuzyirmiizle(vods.movieextension):
     domain = "http://www.720pizle.com"
+    logo = domain + "/images/logo.png"
     info = {
         "title": "720pizle"
         }
     art = {
-           "icon": "http://720pizle.com/images/logo.png",
-           "thumb": "http://720pizle.com/images/logo.png"
+           "icon": logo,
+           "thumb": logo,
+           "poster": logo,
            }
 
     def plus(self, apage):
@@ -86,6 +88,7 @@ class yediyuzyirmiizle(vods.movieextension):
             art = {
                    "thumb": img,
                    "icon": img,
+                   "poster": img
                    }
             self.additem(title, links, info, art)
         next = re.findall('<li class="active">.*?<li ><a href="(.*?)" title="(.*?)">[0-9]*?</a></li>', page, re.DOTALL)
