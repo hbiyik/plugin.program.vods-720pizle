@@ -3,6 +3,7 @@
   <requires>
     <import addon="xbmc.python" version="2.1.0" />
     <import addon="plugin.video.vods" version="0.0.1" />
+    <import addon="script.module.htmlement" version="0.2.3"/>
   </requires>
   <extension point="xbmc.python.pluginsource">
 		<provides/>
@@ -23,4 +24,7 @@
 		<website>https://github.com/boogiepy/plugin.program.vods-720pizle</website>
 		<email>boogiepop@gmx.com</email>
   </extension>
+  <tinyxbmc>
+  	<plugin path="lib" id="vodsmovie" module="yediyuzyirmi" instance="yediyuzyirmiizle"/>
+  </tinyxbmc>
 </addon>

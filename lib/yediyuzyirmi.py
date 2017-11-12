@@ -21,6 +21,7 @@
 import vods
 import re
 from operator import itemgetter
+import htmlement
 
 encoding = "windows-1254"
 
@@ -52,13 +53,14 @@ class yediyuzyirmiizle(vods.movieextension):
                               params=q)
         vids = re.findall('"file":"(.*?)".*?"label":"([0-9]*)', ppage)
         vids = [[x[0], int(x[1])] for x in vids]
-        print vids
         return vids
 
     def jsfunc(self, apage, fname, pattern, qual):
         oids = re.findall(fname + "\('(.*?)'", apage)
         vids = []
         for oid in oids:
+            if fname == "mailru":
+                oid = oid.replace("/_myvideo", "/video/_myvideo")
             vids.append([pattern % oid, qual])
         return vids
 
@@ -126,7 +128,6 @@ class yediyuzyirmiizle(vods.movieextension):
         for lang in id:
             page = self.download(self.domain + lang, encoding=encoding)
             alts = re.findall('<a href="(.*?)" rel="nofollow">(.*?)<b class="alternatifrip">', page)
-            print alts
             vids = []
             for alink, adesc in alts:
                 adesc = adesc.lower().replace(" ", "")
@@ -142,10 +143,10 @@ class yediyuzyirmiizle(vods.movieextension):
                     pattern = "http://www.wholecloud.net/embed/?v=%s"
                     vids.extend(self.jsfunc(apage, "movshare", pattern, 720))
                 elif adesc == "mail.ru":
-                    pattern ="http://videoapi.my.mail.ru/videos/embed/%s"
+                    pattern = "https://my.mail.ru/%s.html"
                     vids.extend(self.jsfunc(apage, "mailru", pattern, 480))
                 elif adesc == "uptobox":
-                    pattern ="http://uptostream.com/%s"
+                    pattern = "http://uptostream.com/%s"
                     vids.extend(self.jsfunc(apage, "uptobox", pattern, 480))
             vids.sort(key=itemgetter(1), reverse=True)
             for vid, qual in vids:
