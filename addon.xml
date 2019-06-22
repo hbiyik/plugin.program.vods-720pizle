@@ -23,6 +23,7 @@
 		<source/>
 		<website>https://github.com/boogiepy/plugin.program.vods-720pizle</website>
 		<email>boogiepop@gmx.com</email>
+		<broken>disabled since site using google recpatcha</broken>
   </extension>
   <tinyxbmc>
   	<plugin path="lib" id="vodsmovie" module="yediyuzyirmi" instance="yediyuzyirmiizle"/>

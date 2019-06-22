@@ -27,7 +27,7 @@ encoding = "windows-1254"
 
 
 class yediyuzyirmiizle(vods.movieextension):
-    domain = "http://www.720pizle.com"
+    domain = "http://www.720p-izle.com"
     logo = domain + "/images/logo.png"
     info = {
         "title": "720pizle"
@@ -73,27 +73,48 @@ class yediyuzyirmiizle(vods.movieextension):
             vids.append(["https://openload.co/embed/%s/" % oid, 720])
         return vids
 
+    def processinfo(self, txt, info):
+        txts = txt.split(" izle")
+        if len(txts) > 1:
+            info["year"] = re.search("(\([0-9]+?\))", txts[1]).group(1)
+        if " - " in txts[0]:
+            titles = txts[0].split(" - ")
+            info["title"] = titles[0]
+            info["originaltitle"] = titles[1]
+        else:
+            info["title"] = txts[0]
+
     def scrapegrid(self, page):
-        for item in re.findall('(<div class="film-kategori.*?</small></div>)', page, re.DOTALL):
-            title = re.findall('<span class="oval">(.*?)</span>', item)[0]
-            links = re.findall('<div class="film-kategori-tr-secenek">(.*?)</div', item)[0]
-            links = re.findall('href="(/izle.*?)"', links)
-            img = re.findall('<img src="(.*?)"', item)[0]
-            stars = re.findall('<span class="c">(.*?)\/', item)[0]
-            stars = float(stars.replace(",", "."))
-            info = {
-                    "title": title,
-                    "rating": stars,
-                    }
-            art = {
-                   "thumb": img,
-                   "icon": img,
-                   "poster": img
-                   }
+        tree = htmlement.fromstring(page)
+        for item in tree.iterfind(".//div[@class='film-kategori-tablo oval golge']"):
+            links = []
+            info = {}
+            art = {}
+            title = item.find(".//div[@class='film-kategori-bilgi-baslik']/span").text
+            self.processinfo(title, info)
+            for link in item.iterfind(".//div[3]/a"):
+                links.append(link.get("href"))
+            img = item.find(".//a/img")
+            if img is not None:
+                img = img.get("src")
+                if img.startswith("//"):
+                    img = "https:" + img
+                art = {
+                       "thumb": img,
+                       "icon": img,
+                       "poster": img
+                       }
             self.additem(title, links, info, art)
-        next = re.findall('<li class="active">.*?<li ><a href="(.*?)" title="(.*?)">[0-9]*?</a></li>', page, re.DOTALL)
-        if len(next):
-            self.setnextpage(next[0][0], next[0][1])
+
+        found = False
+        for a in tree.iterfind(".//div[@class='pagination pagination-centered']/ul/li/a"):
+            cls = a.get("class")
+            if cls == "active":
+                found = True
+                continue
+            if found and cls is None:
+                self.setnextpage(a.get("href"), a.text)
+                break
 
     def getcategories(self):
         page = self.download(self.domain, encoding=encoding)
@@ -120,7 +141,7 @@ class yediyuzyirmiizle(vods.movieextension):
 
     def searchmovies(self, keyw):
         q = {"a": keyw}
-        page = self.download(self.domain + "/ara.asp", \
+        page = self.download(self.domain + "/filtre.asp", \
                              encoding=encoding,
                              params=q,
                              referer=self.domain
@@ -129,12 +150,12 @@ class yediyuzyirmiizle(vods.movieextension):
 
     def geturls(self, id):
         for lang in id:
-            page = self.download(self.domain + lang, encoding=encoding)
-            alts = re.findall('<a href="(.*?)" rel="nofollow">(.*?)<b class="alternatifrip">', page)
+            tree = htmlement.fromstring(self.download(self.domain + lang, encoding=encoding))
+            alts = tree.findall(".//div[@class='film-icerik-izle'][2]/div/a", page)
             vids = []
-            for alink, adesc in alts:
-                adesc = adesc.lower().replace(" ", "")
-                apage = self.download(self.domain + alink, encoding=encoding)
+            for alt in alts:
+                adesc = alt.title.lower().replace(" ", "")
+                apage = self.download(self.domain + alt.get("data-id"), encoding=encoding)
                 if adesc == "plusplayerv2":
                     vids.extend(self.plusv2(apage))
                 elif adesc == "plusplayer":
